@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C# 簡易計分系統練習</title>
+  <!-- CSS 負責版面與顏色；修改這裡不會改變計分規則。 -->
+  <style>
+    :root {
+      font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+      color: #172033;
+      background: #f3f6fb;
+    }
+
+    body {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+
+    h1, h2 { margin-top: 0; }
+    h1 { color: #153c70; }
+    section {
+      margin: 20px 0;
+      padding: 22px;
+      background: #fff;
+      border: 1px solid #dce4ef;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px #20304a0d;
+    }
+
+    .intro, .hint { color: #526179; line-height: 1.6; }
+    .fields { display: flex; flex-wrap: wrap; gap: 14px; }
+    .fields label { flex: 1 1 220px; }
+    input[type="text"] {
+      box-sizing: border-box;
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px;
+      border: 1px solid #b9c5d6;
+      border-radius: 6px;
+    }
+
+    .question {
+      margin: 16px 0;
+      padding: 14px;
+      background: #f7f9fc;
+      border-radius: 8px;
+    }
+
+    .question p { margin: 0 0 10px; font-weight: 600; }
+    .choice { display: inline-flex; gap: 4px; margin: 4px 14px 4px 0; }
+    button {
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 6px;
+      color: white;
+      background: #1d5ca8;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:hover { background: #15477f; }
+    input[type="file"] { margin: 10px 0; }
+    .score-card {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .score-card span {
+      padding: 9px 12px;
+      background: #eaf1fb;
+      border-radius: 6px;
+    }
+    #message { min-height: 1.5em; color: #a12c27; }
+    #import-message { min-height: 1.5em; color: #24633b; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e1e7ef;
+      text-align: left;
+      white-space: nowrap;
+    }
+    th { color: #153c70; background: #f2f6fb; }
+    @media (max-width: 600px) {
+      section { padding: 16px; }
+      .choice { margin-right: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 頁首：用簡短文字說明這個展示頁能做什麼。 -->
+  <header>
+    <h1>C# 簡易計分系統練習</h1>
+    <p class="intro">本專案為練習用C#簡易計分程式，使用 HTML、CSS 和 JavaScript 製作互動網頁展示。可即時計分、匯入 CSV 並查看排名。</p>
+  </header>
+
+  <main>
+    <!-- 作答區：考生選答案後會即時看到目前統計。 -->
+    <section aria-labelledby="quiz-title">
+      <h2 id="quiz-title">互動作答</h2>
+      <p class="hint">請輸入考生資料並選擇答案。分數和答題狀況會立即更新；「未作答」會記為 -，不計分。</p>
+      <div class="fields">
+        <label>學號
+          <input id="student-id" type="text" autocomplete="off" placeholder="例如 S005">
+        </label>
+        <label>姓名
+          <input id="student-name" type="text" autocomplete="name" placeholder="例如 王小明">
+        </label>
+      </div>
+
+      <div id="questions"></div>
+
+      <div class="score-card" aria-live="polite">
+        <span>分數：<strong id="score">0</strong></span>
+        <span>答對：<strong id="correct">0</strong></span>
+        <span>答錯：<strong id="wrong">0</strong></span>
+        <span>未作答：<strong id="unanswered">5</strong></span>
+      </div>
+      <p id="message" role="alert"></p>
+      <button id="save-result" type="button">加入／更新排行榜</button>
+    </section>
+
+    <!-- 匯入區：選取 CSV 後在瀏覽器內驗證，不會上傳到伺服器。 -->
+    <section aria-labelledby="csv-title">
+      <h2 id="csv-title">匯入 CSV 成績</h2>
+      <p class="hint">請選擇 UTF-8 CSV，第一列須為 StudentId,Name,Answers。答案需為 5 個 A、B、C、D 或 -；學號不可重複。這個簡易範例不支援欄位內含逗號。匯入成功會取代目前排行榜。</p>
+      <label for="csv-file">選擇 students.csv：</label>
+      <input id="csv-file" type="file" accept=".csv,text/csv">
+      <p id="import-message" role="status"></p>
+    </section>
+
+    <!-- 排行榜區：JavaScript 會依分數排序並填入這個表格。 -->
+    <section aria-labelledby="ranking-title">
+      <h2 id="ranking-title">成績排行榜</h2>
+      <p class="hint">分數由高至低排列。同分並列名次，採競賽排名，例如 1、1、3。</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>名次</th><th>學號</th><th>姓名</th><th>答對</th>
+              <th>答錯</th><th>未作答</th><th>分數</th>
+            </tr>
+          </thead>
+          <tbody id="ranking-body">
+            <tr><td colspan="7">尚無成績，請作答或匯入 CSV。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- JavaScript 負責建立題目、計分、CSV 驗證和更新排行榜。 -->
+  <script>
+    // 標準答案固定為 ACBDA；每一題答對得 20 分。
+    const answerKey = "ACBDA";
+    const questions = [
+      { text: "2 + 3 等於多少？", options: ["5", "4", "6", "7"] },
+      { text: "水的化學式是什麼？", options: ["CO2", "O2", "H2O", "NaCl"] },
+      { text: "太陽系中最大的行星是哪一顆？", options: ["地球", "木星", "火星", "金星"] },
+      { text: "HTML 的全名是什麼？", options: ["HighText Machine Language", "Hyper Tool Markup Language", "HomeText Markup Language", "HyperText Markup Language"] },
+      { text: "1 公里等於幾公尺？", options: ["1000", "100", "10", "500"] }
+    ];
+
+    // 成績先存在瀏覽器記憶體；重新整理後會清空，CSV 可重新匯入。
+    let results = [];
+
+    // 根據選項建立題目，選項文字以 textContent 放入，避免把文字當成 HTML。
+    function showQuestions() {
+      const container = document.getElementById("questions");
+
+      questions.forEach((question, questionIndex) => {
+        const group = document.createElement("fieldset");
+        group.className = "question";
+
+        const legend = document.createElement("legend");
+        legend.textContent = `第 ${questionIndex + 1} 題：${question.text}`;
+        group.appendChild(legend);
+
+        question.options.forEach((option, optionIndex) => {
+          const letter = String.fromCharCode(65 + optionIndex);
+          const label = document.createElement("label");
+          label.className = "choice";
+
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = `question-${questionIndex}`;
+          radio.value = letter;
+          radio.addEventListener("change", updatePreview);
+
+          label.append(radio, document.createTextNode(`${letter}. ${option}`));
+          group.appendChild(label);
+        });
+
+        const blankLabel = document.createElement("label");
+        blankLabel.className = "choice";
+        const blankRadio = document.createElement("input");
+        blankRadio.type = "radio";
+        blankRadio.name = `question-${questionIndex}`;
+        blankRadio.value = "-";
+        blankRadio.addEventListener("change", updatePreview);
+        blankLabel.append(blankRadio, document.createTextNode("未作答"));
+        group.appendChild(blankLabel);
+
+        container.appendChild(group);
+      });
+    }
+
+    // 讀取五題目前的選擇；尚未選擇的題目也用 - 表示未作答。
+    function getCurrentAnswers() {
+      return questions.map((question, index) => {
+        const selected = document.querySelector(`input[name="question-${index}"]:checked`);
+        return selected ? selected.value : "-";
+      }).join("");
+    }
+
+    // 計算一份答案的答對、答錯、未作答數量和分數。
+    function calculateResult(studentId, name, answers) {
+      let correct = 0;
+      let wrong = 0;
+      let unanswered = 0;
+
+      for (let index = 0; index < answerKey.length; index++) {
+        if (answers[index] === "-") {
+          unanswered++;
+        } else if (answers[index] === answerKey[index]) {
+          correct++;
+        } else {
+          wrong++;
+        }
+      }
+
+      return {
+        studentId,
+        name,
+        answers,
+        correct,
+        wrong,
+        unanswered,
+        score: correct * 20
+      };
+    }
+
+    // 即時更新畫面上的個人統計。
+    function updatePreview() {
+      const result = calculateResult("", "", getCurrentAnswers());
+      document.getElementById("score").textContent = result.score;
+      document.getElementById("correct").textContent = result.correct;
+      document.getElementById("wrong").textContent = result.wrong;
+      document.getElementById("unanswered").textContent = result.unanswered;
+    }
+
+    // 建立表格時將使用者資料放進文字節點，並按分數排序。
+    function renderRanking() {
+      const body = document.getElementById("ranking-body");
+      body.replaceChildren();
+
+      const sorted = [...results].sort((first, second) => {
+        if (first.score !== second.score) {
+          return second.score - first.score;
+        }
+        return first.studentId < second.studentId ? -1 : first.studentId > second.studentId ? 1 : 0;
+      });
+
+      if (sorted.length === 0) {
+        const row = body.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 7;
+        cell.textContent = "尚無成績，請作答或匯入 CSV。";
+        return;
+      }
+
+      sorted.forEach((result, index) => {
+        // 同分沿用前一位名次，下一個名次按排序位置計算（1、1、3）。
+        const rank = index > 0 && result.score === sorted[index - 1].score
+          ? sorted[index - 1].rank
+          : index + 1;
+        result.rank = rank;
+
+        const row = body.insertRow();
+        [rank, result.studentId, result.name, result.correct, result.wrong, result.unanswered, result.score]
+          .forEach(value => {
+            const cell = row.insertCell();
+            cell.textContent = value;
+          });
+      });
+    }
+
+    // 以學號識別考生；同一學號再次加入時更新舊成績。
+    document.getElementById("save-result").addEventListener("click", () => {
+      const studentId = document.getElementById("student-id").value.trim();
+      const name = document.getElementById("student-name").value.trim();
+      const message = document.getElementById("message");
+
+      if (!studentId || !name) {
+        message.textContent = "請先填寫學號和姓名。";
+        return;
+      }
+
+      message.textContent = "";
+      const result = calculateResult(studentId, name, getCurrentAnswers());
+      results = results.filter(existing => existing.studentId !== studentId);
+      results.push(result);
+      renderRanking();
+    });
+
+    // 驗證整份 CSV 後才更新排行榜，格式錯誤時保留原本資料。
+    document.getElementById("csv-file").addEventListener("change", async event => {
+      const file = event.target.files[0];
+      const message = document.getElementById("import-message");
+      message.textContent = "";
+
+      if (!file) {
+        return;
+      }
+
+      try {
+        const text = (await file.text()).replace(/^\uFEFF/, "");
+        const lines = text.split(/\r?\n/);
+        if (!lines[0] || lines[0].trim() !== "StudentId,Name,Answers") {
+          throw new Error("第一列標題必須是 StudentId,Name,Answers。");
+        }
+
+        const imported = [];
+        const usedIds = new Set();
+
+        lines.slice(1).forEach((line, index) => {
+          if (!line.trim()) {
+            return;
+          }
+
+          const columns = line.split(",");
+          const rowNumber = index + 2;
+          if (columns.length !== 3 || !columns[0].trim() || !columns[1].trim()) {
+            throw new Error(`第 ${rowNumber} 列必須有學號、姓名和答案三個欄位。`);
+          }
+
+          const studentId = columns[0].trim();
+          const name = columns[1].trim();
+          const answers = columns[2].trim();
+          if (answers.length !== answerKey.length || !/^[A-D-]{5}$/.test(answers)) {
+            throw new Error(`第 ${rowNumber} 列答案須為 5 個 A、B、C、D 或 -。`);
+          }
+          if (usedIds.has(studentId)) {
+            throw new Error(`第 ${rowNumber} 列的學號 ${studentId} 重複。`);
+          }
+
+          usedIds.add(studentId);
+          imported.push(calculateResult(studentId, name, answers));
+        });
+
+        if (imported.length === 0) {
+          throw new Error("CSV 沒有任何考生資料。");
+        }
+
+        results = imported;
+        renderRanking();
+        message.textContent = `成功匯入 ${results.length} 位考生。`;
+      } catch (error) {
+        // 顯示明確錯誤，且不清除原本的排行榜。
+        message.textContent = `匯入失敗：${error.message}`;
+      }
+    });
+
+    showQuestions();
+    updatePreview();
+  </script>
+</body>
+</html>

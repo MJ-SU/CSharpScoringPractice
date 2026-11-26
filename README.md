@@ -1,2 +1,26 @@
-# CSharpScoringPractice
-A simple C# exam grading practice project that supports importing candidate data from CSV files, verifying answers, calculating scores, and generating rankings, with an interactive web-based display.
+# C# 簡易計分系統練習
+
+這是用來練習 C# 的簡易考試計分專案。會讀取考生答案、比對標準答案、計算分數，並依成績顯示排行榜。另附一個網頁版作為操作展示。
+
+## 專案功能
+
+- 計算考生的答對、答錯、未作答題數和分數。
+- 成績由高至低排序；同分考生並列名次。
+- 網頁展示可以作答並即時查看分數，也可以匯入 CSV，並顯示排名。
+- CSV 格式錯誤時會顯示提示。
+
+## 檔案介紹
+
+| 檔案 | 用途 |
+| --- | --- |
+| `Program.cs` | 主程式、CSV 讀取、計分和排名。 |
+| `StudentAnswer.cs` | 保存考生學號、姓名、答案和計分結果。 |
+| `students.csv` | 範例考生資料。 |
+| `index.html` | 網頁展示，包含題目、即時計分、CSV 匯入和排行榜。 |
+
+## Future Work
+
+- 加入成績儲存，讓重新開啟網頁後仍保留資料。
+- 加入下載成績 CSV 的功能。
+- 增加更多測試資料和錯誤情況測試。
+- 練習使用 GitHub Pages 發布網頁展示。

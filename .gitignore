@@ -1,0 +1,11 @@
+# .NET 建置產生的檔案
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio 使用者與本機設定
+.vs/
+*.user
+*.suo
+
+# 測試輸出
+[Tt]est[Rr]esults/
