@@ -16,7 +16,7 @@
 | `Program.cs` | 主程式、CSV 讀取、計分和排名。 |
 | `StudentAnswer.cs` | 保存考生學號、姓名、答案和計分結果。 |
 | `students.csv` | 範例考生資料。 |
-| `index.html` | 網頁展示，包含題目、即時計分、CSV 匯入和排行榜。 |
+| `docs/index.html` | 網頁展示，包含題目、即時計分、CSV 匯入和排行榜。 |
 
 ## Future Work
 
